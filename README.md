@@ -3,17 +3,19 @@ Package validator
 
 Package validator implements variable validations
 
+Fork of https://github.com/go-validator/validator with additional buildin validators.
+
 Installation
 ============
 
 Just use go get.
 
-	go get gopkg.in/validator.v2
+	go get github.com/THE108/validator
 
 And then just import the package into your own code.
 
 	import (
-		"gopkg.in/validator.v2"
+		"github.com/THE108/validator"
 	)
 
 Usage
@@ -30,8 +32,8 @@ A simple example would be.
 	}
 
 	nur := NewUserRequest{Username: "something", Age: 20}
-	if valid, errs := validator.Validate(nur); !valid {
-		// values not valid, deal with errors here
+	if err := validator.Validate(nur); err != nil {
+		// values not valid, deal with error here
 	}
 
 
@@ -66,9 +68,35 @@ Here is the list of validators buildin in the package.
 		string it's "", for pointers is nil, etc.) Usage: nonzero
 	
 	regexp
-		Only valid for string types, it will validator that the
+		Only valid for string types, it will validate that the
 		value matches the regular expression provided as parameter.
 		(Usage: regexp=^a.*b$)
+
+	(in this fork)
+
+	in
+		Validates that the value is in array. Only valid for string types.
+		(Usage: in=ios,android,windows)
+
+	ipv4
+		Validates that the value is valid ipv4. Only valid for string types.
+		Usage: ipv4.
+
+	url
+		Validates that the value is valid url. Only valid for string types. 
+		Possible schemas: ftp, http, https. Usage: url.
+
+	path_valid
+		Validates that the value is valid unix path. Only valid for string types.
+		Usage: path_valid.
+
+	path_exists
+		Validates that the value is valid unix path and that path exists.
+		Only valid for string types. Usage: path_exists.
+
+	basepath_exists
+		Validates that the value is valid unix path and that path exists.
+		Only valid for string types. Usage: path_exists.
 
 Custom validators
 

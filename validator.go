@@ -70,6 +70,8 @@ var (
 	// ErrInvalid is the error returned when variable is invalid
 	// (normally a nil pointer)
 	ErrInvalid = TextErr{errors.New("invalid value")}
+	// ErrIsNotAString is the error returned when variable must be a string
+	ErrIsNotAString = TextErr{errors.New("must be a string value")}
 )
 
 // ErrorMap is a map which contains all errors from validating a struct.
@@ -93,9 +95,14 @@ type ErrorArray []error
 // ErrorArray implements the Error interface and returns the first error as
 // string if existent.
 func (err ErrorArray) Error() string {
-	if len(err) > 0 {
+	if len(err) == 1 {
 		return err[0].Error()
 	}
+
+	if len(err) > 1 {
+		return fmt.Sprintf("%s (have %d more)", err[0].Error(), len(err)-1)
+	}
+
 	return ""
 }
 
@@ -121,11 +128,17 @@ func NewValidator() *Validator {
 	return &Validator{
 		tagName: "validate",
 		validationFuncs: map[string]ValidationFunc{
-			"nonzero": nonzero,
-			"len":     length,
-			"min":     min,
-			"max":     max,
-			"regexp":  regex,
+			"nonzero":         nonzero,
+			"len":             length,
+			"min":             min,
+			"max":             max,
+			"regexp":          regex,
+			"in":              in,
+			"ipv4":            ipv4,
+			"url":             url,
+			"path_valid":      path_valid,
+			"path_exists":     path_exists,
+			"basepath_exists": basepath_exists,
 		},
 	}
 }

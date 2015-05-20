@@ -17,9 +17,18 @@
 package validator
 
 import (
+	"fmt"
+	"net"
+	"os"
 	"reflect"
 	"regexp"
 	"strconv"
+	"strings"
+)
+
+var (
+	rxURL      = regexp.MustCompile(`^((ftp|http|https):\/\/)?(\S+(:\S*)?@)?((([1-9]\d?|1\d\d|2[01]\d|22[0-3])(\.(1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.([0-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|((www\.)?)?(([a-z\x{00a1}-\x{ffff}0-9]+-?-?_?)*[a-z\x{00a1}-\x{ffff}0-9]+)(?:\.([a-z\x{00a1}-\x{ffff}]{2,}))?)|localhost)(:(\d{1,5}))?((\/|\?|#)[^\s]*)?$`)
+	rxUnixPath = regexp.MustCompile(`^((?:\/[a-zA-Z0-9\.\:]+(?:_[a-zA-Z0-9\:\.]+)*(?:\-[\:a-zA-Z0-9\.]+)*)+\/?)$`)
 )
 
 // nonzero tests whether a variable value non-zero
@@ -241,4 +250,78 @@ func asFloat(param string) (float64, error) {
 		return 0.0, ErrBadParameter
 	}
 	return i, nil
+}
+
+func in(v interface{}, param string) error {
+	str, ok := v.(string)
+	if !ok {
+		return ErrIsNotAString
+	}
+
+	str = strings.Trim(str, " ")
+
+	variants := strings.Split(param, ",")
+	for _, variant := range variants {
+		variant = strings.Trim(variant, " ")
+		if variant == str {
+			return nil
+		}
+	}
+
+	return TextErr{fmt.Errorf("'%s' not found in '%s'", str, param)}
+}
+
+func ipv4(v interface{}, param string) error {
+	str, ok := v.(string)
+	if !ok {
+		return ErrIsNotAString
+	}
+	if ip := net.ParseIP(str); ip == nil || ip.To4() == nil {
+		return TextErr{fmt.Errorf("'%s' is not valid ipv4", str)}
+	}
+	return nil
+}
+
+func url(v interface{}, param string) error {
+	str, ok := v.(string)
+	if !ok {
+		return ErrIsNotAString
+	}
+	if len(str) < 6 || len(str) >= 2083 || !rxURL.MatchString(str) {
+		return TextErr{errors.New("'%s' isn't valid url")}
+	}
+	return nil
+}
+
+func path_valid(v interface{}, param string) error {
+	str, ok := v.(string)
+	if !ok {
+		return ErrIsNotAString
+	}
+	if !rxUnixPath.MatchString(str) {
+		return TextErr{errors.New("'%s' isn't valid path")}
+	}
+	return nil
+}
+
+func path_exists(v interface{}, param string) error {
+	str, ok := v.(string)
+	if !ok {
+		return ErrIsNotAString
+	}
+	if _, err := os.Stat(str); err != nil {
+		return TextErr{err}
+	}
+	return nil
+}
+
+func basepath_exists(v interface{}, param string) error {
+	str, ok := v.(string)
+	if !ok {
+		return ErrIsNotAString
+	}
+	if _, err := os.Stat(path.Dir(str)); err != nil {
+		return TextErr{err}
+	}
+	return nil
 }
