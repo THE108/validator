@@ -262,7 +262,7 @@ func in(v interface{}, param string) error {
 
 	str = strings.Trim(str, " ")
 
-	variants := strings.Split(param, ",")
+	variants := strings.Split(param, "|")
 	for _, variant := range variants {
 		variant = strings.Trim(variant, " ")
 		if variant == str {

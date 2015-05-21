@@ -75,8 +75,8 @@ Here is the list of validators buildin in the package.
 	(in this fork)
 
 	in
-		Validates that the value is in array. Only valid for string types.
-		(Usage: in=ios,android,windows)
+		Validates that the value is in enum. Only valid for string types.
+		(Usage: in=ios|android|windows)
 
 	ipv4
 		Validates that the value is valid ipv4. Only valid for string types.
