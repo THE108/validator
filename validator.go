@@ -220,27 +220,28 @@ func (mv *Validator) Validate(v interface{}) error {
 	}
 
 	nfields := sv.NumField()
+
 	m := make(ErrorMap)
 	for i := 0; i < nfields; i++ {
 		f := sv.Field(i)
+
 		// deal with pointers
 		for f.Kind() == reflect.Ptr && !f.IsNil() {
 			f = f.Elem()
 		}
-		tag := st.Field(i).Tag.Get(mv.tagName)
-		if f.Kind() == reflect.Ptr {
-			ff := f.Elem()
-			if ff.Kind() == reflect.Struct {
 
-			}
-		}
+		tag := st.Field(i).Tag.Get(mv.tagName)
+
 		if tag == "-" {
 			continue
 		}
-		if tag == "" && f.Kind() != reflect.Struct {
+
+		if tag == "" && f.Kind() != reflect.Struct && f.Kind() != reflect.Slice {
 			continue
 		}
+
 		fname := st.Field(i).Name
+
 		var errs ErrorArray
 		switch f.Kind() {
 		case reflect.Struct:
@@ -251,6 +252,24 @@ func (mv *Validator) Validate(v interface{}) error {
 			if e, ok := e.(ErrorMap); ok && len(e) > 0 {
 				for j, k := range e {
 					m[fname+"."+j] = k
+				}
+			}
+
+		case reflect.Slice:
+			if !unicode.IsUpper(rune(fname[0])) {
+				continue
+			}
+			slength := f.Len()
+			if slength == 0 {
+				continue
+			}
+			for i := 0; i < slength; i++ {
+				e := mv.Validate(f.Index(i).Interface())
+				if e, ok := e.(ErrorMap); ok && len(e) > 0 {
+					for j, k := range e {
+						delim := fmt.Sprintf("%s[%d].%s", fname, i, j)
+						m[delim] = k
+					}
 				}
 			}
 

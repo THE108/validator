@@ -17,10 +17,12 @@
 package validator_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	. "gopkg.in/check.v1"
-	"gopkg.in/validator.v2"
+
+	"github.com/THE108/validator"
 )
 
 func Test(t *testing.T) {
@@ -32,44 +34,82 @@ type MySuite struct{}
 var _ = Suite(&MySuite{})
 
 type Simple struct {
-	A int `validate:"min=10"`
+	A int `json:"a" validate:"min=10"`
 }
 
 type TestStruct struct {
-	A   int    `validate:"nonzero"`
-	B   string `validate:"len=8,min=6,max=4"`
+	A int    `json:"a" validate:"nonzero"`
+	B string `json:"b" validate:"min=4,max=6"`
+
 	Sub struct {
-		A int `validate:"nonzero"`
-		B string
-		C float64 `validate:"nonzero,min=1"`
-		D *string `validate:"nonzero"`
-	}
-	D *Simple `validate:"nonzero"`
+		A int     `json:"a" validate:"nonzero"`
+		B string  `json:"b"`
+		C float64 `json:"c" validate:"nonzero,min=1"`
+		D *string `json:"d" validate:"nonzero"`
+	} `json:"sub"`
+
+	D *Simple `json:"d" validate:"nonzero"`
+
+	SubSlice []struct {
+		A int     `json:"a" validate:"nonzero"`
+		B string  `json:"b"`
+		C float64 `json:"c" validate:"nonzero,min=1"`
+		D *string `json:"d" validate:"nonzero"`
+	} `json:"slice"`
 }
 
 func (ms *MySuite) TestValidate(c *C) {
-	t := TestStruct{
-		A: 0,
-		B: "12345",
-	}
-	t.Sub.A = 1
-	t.Sub.B = ""
-	t.Sub.C = 0.0
-	t.D = &Simple{10}
 
-	err := validator.Validate(t)
+	js := []byte(`{
+		"a": 100,
+		"b": "test",
+		"sub": {
+			"a": 1,
+			"b": "test", 
+			"c": 3.14, 
+			"d": "test_ptr"
+		},
+		"d": {
+			"a": 10
+		},
+		"slice": [
+			{
+				"a": 1,
+				"b": "test", 
+				"c": 3.14, 
+				"d": "test_ptr"
+			}, {
+				"b": "test",
+				"c": 3.14, 
+				"d": "test_ptr"
+			}
+		]}`)
+
+	var t TestStruct
+	e := json.Unmarshal(js, &t)
+	if e != nil {
+		c.Logf("e:%s", e.Error())
+	}
+	c.Assert(e, IsNil)
+
+	err := validator.Validate(&t)
 	c.Assert(err, NotNil)
 
 	errs, ok := err.(validator.ErrorMap)
 	c.Assert(ok, Equals, true)
+
+	c.Logf("errors:%+v", errs)
+
 	c.Assert(errs["A"], HasError, validator.ErrZeroValue)
-	c.Assert(errs["B"], HasError, validator.ErrLen)
-	c.Assert(errs["B"], HasError, validator.ErrMin)
+	// c.Assert(errs["B"], HasError, validator.ErrLen)
+	// c.Assert(errs["B"], HasError, validator.ErrMin)
 	c.Assert(errs["B"], HasError, validator.ErrMax)
 	c.Assert(errs["Sub.A"], HasLen, 0)
 	c.Assert(errs["Sub.B"], HasLen, 0)
-	c.Assert(errs["Sub.C"], HasLen, 2)
-	c.Assert(errs["Sub.D"], HasError, validator.ErrZeroValue)
+	// c.Assert(errs["Sub.C"], HasLen, 2)
+	// c.Assert(errs["Sub.D"], HasError, validator.ErrZeroValue)
+
+	c.Assert(errs["SubSlice[1].A"], HasError, validator.ErrZeroValue)
 }
 
 func (ms *MySuite) TestValidSlice(c *C) {
