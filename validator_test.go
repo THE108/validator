@@ -39,7 +39,7 @@ type Simple struct {
 
 type TestStruct struct {
 	A int    `json:"a" validate:"nonzero"`
-	B string `json:"b" validate:"min=4,max=6"`
+	B string `json:"b" validate:"len=5,min=8,max=4"`
 
 	Sub struct {
 		A int     `json:"a" validate:"nonzero"`
@@ -61,13 +61,10 @@ type TestStruct struct {
 func (ms *MySuite) TestValidate(c *C) {
 
 	js := []byte(`{
-		"a": 100,
-		"b": "test",
+		"b": "123456",
 		"sub": {
 			"a": 1,
-			"b": "test", 
-			"c": 3.14, 
-			"d": "test_ptr"
+			"b": "test"
 		},
 		"d": {
 			"a": 10
@@ -86,29 +83,21 @@ func (ms *MySuite) TestValidate(c *C) {
 		]}`)
 
 	var t TestStruct
-	e := json.Unmarshal(js, &t)
-	if e != nil {
-		c.Logf("e:%s", e.Error())
-	}
-	c.Assert(e, IsNil)
+	c.Assert(json.Unmarshal(js, &t), IsNil)
 
 	err := validator.Validate(&t)
 	c.Assert(err, NotNil)
 
 	errs, ok := err.(validator.ErrorMap)
 	c.Assert(ok, Equals, true)
-
-	c.Logf("errors:%+v", errs)
-
 	c.Assert(errs["A"], HasError, validator.ErrZeroValue)
-	// c.Assert(errs["B"], HasError, validator.ErrLen)
-	// c.Assert(errs["B"], HasError, validator.ErrMin)
+	c.Assert(errs["B"], HasError, validator.ErrLen)
+	c.Assert(errs["B"], HasError, validator.ErrMin)
 	c.Assert(errs["B"], HasError, validator.ErrMax)
 	c.Assert(errs["Sub.A"], HasLen, 0)
 	c.Assert(errs["Sub.B"], HasLen, 0)
-	// c.Assert(errs["Sub.C"], HasLen, 2)
-	// c.Assert(errs["Sub.D"], HasError, validator.ErrZeroValue)
-
+	c.Assert(errs["Sub.C"], HasLen, 2)
+	c.Assert(errs["Sub.D"], HasError, validator.ErrZeroValue)
 	c.Assert(errs["SubSlice[1].A"], HasError, validator.ErrZeroValue)
 }
 
